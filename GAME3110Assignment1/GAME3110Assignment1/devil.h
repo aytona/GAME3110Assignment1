@@ -10,5 +10,5 @@ public:
     Devil();
     ~Devil();
 
-    void Special();
+    virtual void Special();
 };

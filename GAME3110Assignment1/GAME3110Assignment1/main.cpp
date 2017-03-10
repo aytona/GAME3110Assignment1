@@ -217,12 +217,71 @@ void PacketListener() {
                 bs.Read(netID);
                 // Set player defaults
                 Player* player = new Player();
-
+                player->SetIsMaster(false);
+                player->SetNetworkIDManager(&g_networkIDManager);
+                player->SetNetworkID(netID);
                 // Locks the racers vector so others can't add to it yet
                 g_playerMutex.lock();
                 m_players.push_back(player);
                 g_playerMutex.unlock();
             }
+            break;
+            case ID_GB3_ATTACK:
+            {
+                printf("An enemy has attacked!\n");
+                BitStream bs(packet->data, packet->length, false);
+                bs.IgnoreBytes(sizeof(MessageID));
+                RakNet::NetworkID netID;
+                bs.Read(netID);
+
+                Player* player = g_networkIDManager.GET_OBJECT_FROM_ID<Player*>(netID);
+                if (player) {
+                    player->Attack(m_players);
+                }
+            }
+            break;
+            case ID_GB3_HEAL:
+            {
+                printf("An enemy is healing!\n");
+                BitStream bs(packet->data, packet->length, false);
+                bs.IgnoreBytes(sizeof(MessageID));
+                RakNet::NetworkID netID;
+                bs.Read(netID);
+
+                Player* player = g_networkIDManager.GET_OBJECT_FROM_ID<Player*>(netID);
+                if (player) {
+                    player->Heal();
+                }
+            }
+            break;
+            case ID_GB3_POWERUP:
+            {
+                printf("An enemy is powering up!\n");
+                BitStream bs(packet->data, packet->length, false);
+                bs.IgnoreBytes(sizeof(MessageID));
+                RakNet::NetworkID netID;
+                bs.Read(netID);
+
+                Player* player = g_networkIDManager.GET_OBJECT_FROM_ID<Player*>(netID);
+                if (player) {
+                    player->PowerUp();
+                }
+            }
+            break;
+            case ID_GB3_SPECIAL:
+            {
+                printf("An enemy is using their special!\n");
+                BitStream bs(packet->data, packet->length, false);
+                bs.IgnoreBytes(sizeof(MessageID));
+                RakNet::NetworkID netID;
+                bs.Read(netID);
+
+                Player* player = g_networkIDManager.GET_OBJECT_FROM_ID<Player*>(netID);
+                if (player) {
+                    player->Special();
+                }
+            }
+            break;
             case ID_CONNECTION_ATTEMPT_FAILED:
             case ID_ALREADY_CONNECTED:
             case ID_NO_FREE_INCOMING_CONNECTIONS:
@@ -238,33 +297,57 @@ void PacketListener() {
 
 void InputListener() {
     DisplayHelp();
-    static char* heal = "h";
+    static char* healing = "h";
     static char* attack = "a";
     static char* powerup = "p";
     static char* special = "s";
     static char* enemies = "e";
+    static char* stat = "i";
     static char* quit = "q";
     static char* help = "p";
     while (g_isRunning) {
         while (g_isGameRunning) {
             char input[32];
             Gets(input, sizeof(input));
-            if (strcmp(input, heal) == 0) {
-                m_players[0]->Heal();
-                BitStream bs;
-                bs.Write((unsigned char)ID_GB3_HEAL);
-                bs.Write(m_players[0]->GetNetworkID());
-                g_rakPeerInterface->Send(&bs, PacketPriority::HIGH_PRIORITY, PacketReliability::RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
-            } else if (strcmp(input, attack) == 0) {
-                m_players[0]->Attack(m_players);
-            } else if (strcmp(input, powerup) == 0) {
-
-            } else if (strcmp(input, special) == 0) {
-
+            if (m_players[0]->GetCurrentSpeed() > 0) {
+                if (strcmp(input, healing) == 0) {
+                    m_players[0]->Heal();
+                    BitStream bs;
+                    bs.Write((unsigned char)ID_GB3_HEAL);
+                    bs.Write(m_players[0]->GetNetworkID());
+                    g_rakPeerInterface->Send(&bs, PacketPriority::HIGH_PRIORITY, PacketReliability::RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+                } else if (strcmp(input, attack) == 0) {
+                    m_players[0]->Attack(m_players);
+                    BitStream bs;
+                    bs.Write((unsigned char)ID_GB3_ATTACK);
+                    bs.Write(m_players[0]->GetNetworkID());
+                    g_rakPeerInterface->Send(&bs, PacketPriority::HIGH_PRIORITY, PacketReliability::RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+                } else if (strcmp(input, powerup) == 0) {
+                    m_players[0]->PowerUp();
+                    BitStream bs;
+                    bs.Write((unsigned char)ID_GB3_POWERUP);
+                    bs.Write(m_players[0]->GetNetworkID());
+                    g_rakPeerInterface->Send(&bs, PacketPriority::HIGH_PRIORITY, PacketReliability::RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+                } else if (strcmp(input, special) == 0) {
+                    m_players[0]->Special();
+                    BitStream bs;
+                    bs.Write((unsigned char)ID_GB3_SPECIAL);
+                    bs.Write(m_players[0]->GetNetworkID());
+                    g_rakPeerInterface->Send(&bs, PacketPriority::HIGH_PRIORITY, PacketReliability::RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+                }
+            }
+            
+            if (strcmp(input, enemies) == 0) {
+                for each (Player* player in m_players) {
+                    player->DisplayStats();
+                }
+            } else if (strcmp(input, stat) == 0) {
+                m_players[0]->DisplayStats();
             } else if (strcmp(input, quit) == 0) {
-
+                g_isGameRunning = false;
+                g_isRunning = false;
             } else if (strcmp(input, help) == 0) {
-
+                DisplayHelp();
             }
         }
         Sleep(100);
@@ -278,6 +361,7 @@ void DisplayHelp() {
     printf("'p' + # = Power Up (speed, power, heal)\n");
     printf("'s' = Special (One time move)\n");
     printf("'e' = Enemies\n");
+    printf("'i' = Stats\n");
     printf("'q' = Quit\n");
     printf("'p' = Help\n");
     printf("*********************************************\n");

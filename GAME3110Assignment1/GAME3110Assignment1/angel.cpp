@@ -17,6 +17,7 @@ Angel::~Angel() {
 }
 
 void Angel::Special() {
+    m_currentSpeed = 0;
     printf("*******************SPECIAL!********************\n");
     printf("DIVINE PROTECTION");
     m_health *= (m_heal * 5);

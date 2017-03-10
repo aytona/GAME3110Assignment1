@@ -10,5 +10,5 @@ public:
     Angel();
     ~Angel();
 
-    void Special();
+    virtual void Special();
 };

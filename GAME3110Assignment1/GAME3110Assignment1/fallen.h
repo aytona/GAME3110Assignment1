@@ -10,5 +10,5 @@ public:
     Fallen();
     ~Fallen();
 
-    void Special();
+    virtual void Special();
 };

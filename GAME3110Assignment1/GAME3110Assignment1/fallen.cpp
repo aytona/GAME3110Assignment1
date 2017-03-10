@@ -17,6 +17,7 @@ Fallen::~Fallen() {
 }
 
 void Fallen::Special() {
+    m_currentSpeed = 0;
     printf("*******************SPECIAL!********************\n");
     printf("DIVINE POWER");
     m_power *= 5.0f;

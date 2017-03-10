@@ -17,6 +17,7 @@ Devil::~Devil() {
 }
 
 void Devil::Special() {
+    m_currentSpeed = 0;
     printf("*******************SPECIAL!********************\n");
     printf("DEVIOUSLY CUNNING");
     m_multiplier *= 5;
